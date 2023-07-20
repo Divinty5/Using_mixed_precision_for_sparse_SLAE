@@ -554,13 +554,13 @@ void P_ILU0_CG( // Метод предоб. сопряжённых градиентов (неполное LU разложение)
     delete[] z;
 }
 
-void main() {
-    int pred = 0; //0 - если без предоб., 1 - если предоб. Холецкого, 2 - если предоб. ILU0
-    double eps = 1e-10;
+int main() {
+    int pred = 1; //0 - если без предоб., 1 - если предоб. Холецкого, 2 - если предоб. ILU0
+    double eps = 1e-7;
     int nit = 0;
     double res;
     CRSArrays crs;
-    load_matrix("bcsstk17.mtx", &crs);
+    load_matrix("parabolic_fem.mtx", &crs);
     sparse_matrix_t A;
     mkl_sparse_d_create_csr(&A, SPARSE_INDEX_BASE_ZERO, crs.m, crs.m, crs.ia, (crs.ia + 1), crs.ja, crs.a);
 
@@ -591,7 +591,7 @@ void main() {
         //процедура ICC_2 считает элементы матрицы Холецкого
         if (ICC_2(crs2.m, crs2.ia, crs2.ja, crs2.a) == -1) {
             cout << "ICC failed :(" << endl;
-            return;
+            return 0;
         }
         mkl_sparse_d_create_csr(&C, SPARSE_INDEX_BASE_ZERO, crs2.m, crs2.m, crs2.ia, (crs2.ia + 1), crs2.ja, crs2.a);
 
@@ -653,5 +653,5 @@ void main() {
     delete[] exact;
     delete[] u;
     delete[] f;
-    return;
+    return 0;
 }
