@@ -9,13 +9,13 @@
 
 using namespace std;
 
-// Структура для матричек в формате csr (compressed sparse row)
+// Structure for matrices in csr format (compressed sparse row)
 struct CRSArrays {
-    MKL_INT m;  //< the dim of the matrix
-    MKL_INT nnz;//< the number of nnz (== ia[m])
-    double* a;  //< the values (of size nnz)
-    MKL_INT* ia;//< the usual rowptr (of size m+1)
-    MKL_INT* ja;//< the colidx of each NNZ (of size nnz)
+    MKL_INT m;      //< the dim of the matrix
+    MKL_INT nnz;    //< the number of nnz (== ia[m])
+    double* a;      //< the values (of size nnz)
+    MKL_INT* ia;    //< the usual rowptr (of size m+1)
+    MKL_INT* ja;    //< the colidx of each NNZ (of size nnz)
 
     CRSArrays() {
         a = NULL;
@@ -27,7 +27,7 @@ struct CRSArrays {
     {
         if (other.a == NULL)
         {
-            cout << "passing a null array!!!!";// Передается не заполненная структура!!!!!!
+            cout << "passing a null array!!!!"; //An unfilled structure is transmitted!!!
         }
         this->m = other.m;
         this->nnz = other.nnz;
@@ -203,9 +203,9 @@ void load_matrix(string Matrix_file_name, CRSArrays* crs)
 
             i++;
         }
-        double* val = new double[coo.nnz];    //< the values (size = nnz)
-        MKL_INT* rowind = new MKL_INT[coo.nnz];  //< the row indexes (size = nnz)
-        MKL_INT* colind = new MKL_INT[coo.nnz];  //< the col indexes (size = nnz)
+        double* val = new double[coo.nnz];      //< the values (size = nnz)
+        MKL_INT* rowind = new MKL_INT[coo.nnz]; //< the row indexes (size = nnz)
+        MKL_INT* colind = new MKL_INT[coo.nnz]; //< the col indexes (size = nnz)
 
         int j = 0;
         while (getline(mtx, line))
@@ -250,7 +250,7 @@ void load_matrix(string Matrix_file_name, CRSArrays* crs)
     std::cout << "Convert " << Matrix_file_name << " done" << endl << endl;
 }
 
-//процедура получает 3 массива (csr), хранящие сим. матрицу как нижнетреугольную, и выдает 3 массива, которые хранят сим. матрицу как полную матрицу
+//procedure receives 3 arrays (csr) storing sim. matrix as lower triangular, and produces 3 arrays that store the sim. matrix as full matrix
 void sym_to_gen(int nrows, MKL_INT* ia, MKL_INT* ja, double* a, MKL_INT* ia1, MKL_INT* ja1, double* a1) {
     int z = 0; ia1[0] = 0;
     for (int i = 0; i < nrows; i++) {
@@ -267,7 +267,8 @@ void sym_to_gen(int nrows, MKL_INT* ia, MKL_INT* ja, double* a, MKL_INT* ia1, MK
     }
     return;
 }
-//процедура ниже так и не пригодилась :(
+
+//The procedure below didn't work :(
 void b_to_lu(int nrows, MKL_INT* ia, MKL_INT* ja, double* a, MKL_INT* ial, MKL_INT* jal, double* al, MKL_INT* iau, MKL_INT* jau, double* au) {
     int z1 = 0, z2 = 0; ial[0] = 0; iau[0] = 0;
     for (int i = 0; i < nrows; i++) {
@@ -280,25 +281,26 @@ void b_to_lu(int nrows, MKL_INT* ia, MKL_INT* ja, double* a, MKL_INT* ial, MKL_I
     }
     return;
 }
-//разложение Холецкого версия 0
+
+//Cholesky decomposition version 0
 void ICC(int nrows, MKL_INT* ia, MKL_INT* ja, double* a) {
     int s, z, z1, z2;
     for (int i = 1; i < nrows; i++) {
-        s = ia[i] - 1; //номер диагонального элемента в строке (i-1)((считаем что индексация идет с 0!))
+        s = ia[i] - 1; //the number of the diagonal element in the row (i-1)((we assume that indexing starts from 0!))
         for (int k = ia[i - 1]; k < s; k++) {
-            a[s] -= (a[k]) * (a[k]); //k - номера (ненулевых) элементов, стоящих слева от диагонального на этой строке (строке с индексом (i-1))
+            a[s] -= (a[k]) * (a[k]); //k - numbers of (non-zero) elements to the left of the diagonal on this line (line with index (i-1))
         }
         if (a[s] < 0) cout << "ERROR" << '\t' << s << endl;
-        a[s] = sqrt(a[s]); //ПОД КОРНЕМ МОГУТ ВОЗНИКНУТЬ ОТРИЦАТЕЛЬНЫЕ ЧИСЛА
+        a[s] = sqrt(a[s]); //NEGATIVE NUMBERS MAY APPEAR UNDER THE ROOT!
         for (int j = i + 1; j < nrows; j++) {
-            z = -1; //z - номер элемента (в дальнейшем), который в COO имеет индексы (i-1; j-1) (в случае если он ненулевой)
-            for (int zz = ia[j - 1]; zz < ia[j]; zz++) { //в этом цикле проверяем наличие элемента (ненулевого) с индексами (j-1; i-1) и, если он есть, то пересчитываем его (соотв. если его нет - то идем дальше)
+            z = -1; //z - number of the element (hereinafter) which has indexes (i-1; j-1) in COO (if it is non-zero)
+            for (int zz = ia[j - 1]; zz < ia[j]; zz++) { //in this loop, we check the presence of an element (non-zero) with indices (j-1; i-1) and, if it exists, then recalculate it (respectively, if it does not exist, then we move on)
                 if (ja[zz] > i - 1) break;
                 if (ja[zz] == i - 1) { z = zz; break; }
             }
             if (z != -1) {
                 for (int k = 1; k < i; k++) {
-                    z1 = -1; z2 = -1; //z1, z2 - номера элементов (в дальнейшем), которые в COO имеет индексы (i-1; k-1) и (j-1; k-1) (в случае если они ненулевые)
+                    z1 = -1; z2 = -1; //z1, z2 - numbers of elements (hereinafter) that have indices (i-1; k-1) and (j-1; k-1) in COO (if they are non-zero)
                     for (int zz = ia[j - 1]; zz < ia[j]; zz++) {
                         if (ja[zz] > k - 1) break;
                         if (ja[zz] == k - 1) { z1 = zz; break; }
@@ -317,13 +319,14 @@ void ICC(int nrows, MKL_INT* ia, MKL_INT* ja, double* a) {
     }
     return;
 }
-//разложение Холецкого версия 1
+
+//Cholesky decomposition version 1
 void ICC_1(int nrows, MKL_INT* ia, MKL_INT* ja, double* a) {
     int s, z, z1, z2;
     for (int i = 1; i < nrows; i++) {
-        z = ia[i] - 1; //номер дагонального элемента в (i-1) строке
+        z = ia[i] - 1; //number of diagonal element in (i-1) row
         for (int j = ia[i - 1]; j < z; j++) {
-            s = ja[j]; //индекс столбца j-го элемента 
+            s = ja[j]; //column index of j-th element 
             for (int k = 0; k < s; k++) {
                 z1 = -1; z2 = -1;
                 for (int zz = ia[s]; zz < ia[s + 1]; zz++) {
@@ -345,11 +348,12 @@ void ICC_1(int nrows, MKL_INT* ia, MKL_INT* ja, double* a) {
     }
     return;
 }
-//разложение Холецкого версия 2 (актуальная)
+
+//Cholesky decomposition version 2 (current)
 int ICC_2(int nrows, MKL_INT* ia, MKL_INT* ja, double* a) {
     int z, l, start, end;
-    for (int i = 1; i < nrows; i++) {
-        z = ia[i] - 1; //номер дагонального элемента в (i-1) строке
+    for (int i = 1; i < nrows + 1; i++) {
+        z = ia[i] - 1; //number of dagonal element in (i-1) row
         for (int k = ia[i - 1]; k < z; k++) {
             l = ia[i - 1];
             start = ja[l];
@@ -368,15 +372,15 @@ int ICC_2(int nrows, MKL_INT* ia, MKL_INT* ja, double* a) {
     return 0;
 }
 
-void CG( // Метод сопряжённых градиентов (Conjugate gradients)
-    MKL_INT nrows,                    //число строк в матрице
-    sparse_matrix_t& A, //матрица A в формате CSR
-    double* u,                   //вектор решения
-    double* f,                    //правая часть
-    double eps,                 //точность для критерия остановки
-    double* res,
-    int itermax,                  //максимальное число итераций для критерия остановки
-    int* number_of_operations   //суммарное число проделанных операций
+void CG(    //Conjugate gradient method
+    MKL_INT nrows,              //number of rows in matrix
+    sparse_matrix_t& A,         //matrix A in CSR format
+    double* u,                  //solution vector
+    double* f,                  //right part
+    double eps,                 //stopping criterion accuracy
+    double* res,                //residual
+    int itermax,                //maximum number of iterations for the stopping criterion
+    int* number_of_operations   //total number of operations performed
 )
 {
     double* Ap = new double[nrows];
@@ -422,16 +426,16 @@ void CG( // Метод сопряжённых градиентов (Conjugate gradients)
     delete[] r;
 }
 
-void P_ICC_CG( // Метод предоб. сопряжённых градиентов (неполная факторизация Холесского)
-    int nrows,                    //число строк в матрице
-    sparse_matrix_t& A,           //матрица A в формате CSR
-    sparse_matrix_t& C,            //матрица С в формате CSR
-    double* u,                   //вектор решения
-    double* f,                    //правая часть
-    double eps,                 //точность для критерия остановки
-    double* res,
-    int itermax,                  //максимальное число итераций для критерия остановки
-    int* number_of_operations   //суммарное число проделанных операций
+void P_ICC_CG(      //Preconditioned conjugate gradient method (CG with incomplete Cholesky factorization)
+    int nrows,                  //number of rows in matrix
+    sparse_matrix_t& A,         //matrix A in CSR format
+    sparse_matrix_t& C,         //matrix C in CSR format
+    double* u,                  //initial approximation (as an argument), decision vector (after applying the method)
+    double* f,                  //right part
+    double eps,                 //stopping criterion accuracy
+    double* res,                //residual
+    int itermax,                //maximum number of iterations for the stopping criterion
+    int* number_of_operations   //total number of operations performed
 )
 {
     double* Ap = new double[nrows];
@@ -466,8 +470,6 @@ void P_ICC_CG( // Метод предоб. сопряжённых градиентов (неполная факторизация Хо
         cblas_daxpy(nrows, alpha, p, 1, u, 1);
         cblas_daxpy(nrows, -alpha, Ap, 1, r, 1);
 
-        //cout << fabs(r[cblas_idamax(nrows, r, 1)]) << endl;
-
         mkl_sparse_d_trsv(SPARSE_OPERATION_NON_TRANSPOSE, 1, C, descr, r, Ap);
         mkl_sparse_d_trsv(SPARSE_OPERATION_TRANSPOSE, 1, C, descr, Ap, z);
 
@@ -487,16 +489,16 @@ void P_ICC_CG( // Метод предоб. сопряжённых градиентов (неполная факторизация Хо
     delete[] z;
 }
 
-void P_ILU0_CG( // Метод предоб. сопряжённых градиентов (неполное LU разложение)
-    int nrows,                    //число строк в матрице
-    sparse_matrix_t& A,           //матрица A в формате CSR
-    sparse_matrix_t& B,
-    double* u,                   //вектор решения
-    double* f,                    //правая часть
-    double eps,                 //точность для критерия остановки
-    double* res,
-    int itermax,                  //максимальное число итераций для критерия остановки
-    int* number_of_operations   //суммарное число проделанных операций
+void P_ILU0_CG(      //Preconditioned conjugate gradient method (CG with incomplete Cholesky factorization)
+    int nrows,                  //number of rows in matrix
+    sparse_matrix_t& A,         //matrix A in CSR format
+    sparse_matrix_t& B,         //matrix C in CSR format
+    double* u,                  //initial approximation (as an argument), decision vector (after applying the method)
+    double* f,                  //right part
+    double eps,                 //stopping criterion accuracy
+    double* res,                //residual
+    int itermax,                //maximum number of iterations for the stopping criterion
+    int* number_of_operations   //total number of operations performed
 )
 {
     double* Ap = new double[nrows];
@@ -554,48 +556,52 @@ void P_ILU0_CG( // Метод предоб. сопряжённых градиентов (неполное LU разложение)
     delete[] z;
 }
 
-int main() {
-    int pred = 1; //0 - если без предоб., 1 - если предоб. Холецкого, 2 - если предоб. ILU0
-    double eps = 1e-7;
+void procedure(
+    int preсond,    //0 - CG, 1 - CG + ICC, 2 - CG + ILU0
+    double eps,     //stopping criterion accuracy
+    string s        //the name of the file where the matrix is stored
+)
+{
     int nit = 0;
     double res;
     CRSArrays crs;
-    load_matrix("parabolic_fem.mtx", &crs);
+    load_matrix(s, &crs);
     sparse_matrix_t A;
     mkl_sparse_d_create_csr(&A, SPARSE_INDEX_BASE_ZERO, crs.m, crs.m, crs.ia, (crs.ia + 1), crs.ja, crs.a);
-
-    double* exact = new double[crs.m]; //exact. solution
+    double* exact = new double[crs.m];  //exact. solution
     for (int i = 0; i < crs.m; i++) { exact[i] = 1; }
     double* u = new double[crs.m];  //Initial approximation
     for (int i = 0; i < crs.m; i++) { u[i] = 0; }
-    double* f = new double[crs.m]; //right part
+    double* f = new double[crs.m];  //right part
     matrix_descr descr = { SPARSE_MATRIX_TYPE_SYMMETRIC, SPARSE_FILL_MODE_LOWER, SPARSE_DIAG_NON_UNIT };
     mkl_sparse_d_mv(SPARSE_OPERATION_NON_TRANSPOSE, 1, A, descr, exact, 0, f);
 
-    if (pred == 0) {
+    if (preсond == 0) {
         auto start = chrono::high_resolution_clock::now();
-        CG(crs.m, A, u, f, eps, &res, 100000, &nit);
+        CG(crs.m, A, u, f, eps, &res, crs.m, &nit);
 
         auto end = chrono::high_resolution_clock::now();
         chrono::duration<double> duration = end - start;
-        cblas_daxpy(crs.m, -1., u, 1, exact, 1); //вектор exact становится вектором ошибки
+        cblas_daxpy(crs.m, -1., u, 1, exact, 1);    //the exact vector becomes the error vector
         cout << "Conjugate Gradient" << endl;
         cout << "Size of matrix: " << crs.m << "\nNumber of iterations: " << nit << "\nNorm of residual vector: " << res << endl;
         cout << "Error: " << fabs(exact[cblas_idamax(crs.m, exact, 1)]) << endl;
         cout << "Time: " << duration.count() << endl << endl;
     }
-    if (pred == 1) {
+
+    if (preсond == 1) {
         auto start = chrono::high_resolution_clock::now();
         sparse_matrix_t C;
         CRSArrays crs2(crs);
-        //процедура ICC_2 считает элементы матрицы Холецкого
+        //procedure ICC_2 counts the elements of the Cholesky matrix
         if (ICC_2(crs2.m, crs2.ia, crs2.ja, crs2.a) == -1) {
             cout << "ICC failed :(" << endl;
-            return 0;
+            return;
         }
+        cout << "ICC completed successfully :)" << endl;
         mkl_sparse_d_create_csr(&C, SPARSE_INDEX_BASE_ZERO, crs2.m, crs2.m, crs2.ia, (crs2.ia + 1), crs2.ja, crs2.a);
 
-        P_ICC_CG(crs.m, A, C, u, f, eps, &res, 100000, &nit);
+        P_ICC_CG(crs.m, A, C, u, f, eps, &res, crs.m, &nit);
         auto end = chrono::high_resolution_clock::now();
         chrono::duration<double> duration = end - start;
         cblas_daxpy(crs.m, -1., u, 1, exact, 1);
@@ -604,7 +610,8 @@ int main() {
         cout << "Error: " << fabs(exact[cblas_idamax(crs.m, exact, 1)]) << endl;
         cout << "Time: " << duration.count() << endl << endl;
     }
-    if (pred == 2) {
+
+    if (preсond == 2) {
         auto start = chrono::high_resolution_clock::now();
         CRSArrays crs1;
         crs1.m = crs.m;
@@ -612,8 +619,12 @@ int main() {
         crs1.a = new double[crs1.nnz];
         crs1.ja = new MKL_INT[crs1.nnz];
         crs1.ia = new MKL_INT[(crs1.m) + 1];
-        sym_to_gen(crs.m, crs.ia, crs.ja, crs.a, crs1.ia, crs1.ja, crs1.a); //процедура составляет 3 массива, которые хранят симметричную марицу не как нижнетреугольную, а как полную матрицу (эл-ты есть как сверху, так и снизу ) 
-        //меняем индексацию новой матрицы с 0 на 1 (только так работает процедура для подсчета ILU0)
+
+        sym_to_gen(crs.m, crs.ia, crs.ja, crs.a, crs1.ia, crs1.ja, crs1.a);
+        /*the procedure is 3 arrays that store the symmetric matrix not as a lower triangular,
+        but as a full matrix (there are elements both above and below)*/
+
+        //change the indexing of the new matrix from 0 to 1 (this is the only way the procedure for calculating ILU0 works)
         for (int i = 0; i < crs1.m + 1; i++) {
             crs1.ia[i] += 1;
             crs1.ja[i] += 1;
@@ -621,14 +632,17 @@ int main() {
         for (int i = crs1.m + 1; i < crs1.nnz; i++) {
             crs1.ja[i] += 1;
         }
-        //делаем два нужных массива, и как-то их заполняем)
+
+        //we make two necessary arrays, and somehow fill them
         MKL_INT ipar[128];
         double dpar[128];
         ipar[1] = 6; ipar[5] = 1; ipar[30] = 0; dpar[30] = 0; dpar[31] = 0; MKL_INT ierr = 0;
-        //создаем массив bilu0, где будут храниться эл-ты матриц L и U, и запускаем процедуру по подсчету эл-тов L и U
+
+        //create an array bilu0, where the elements of the matrices L and U will be stored, and start the procedure for counting the elements L and U
         double* bilu0 = new double[crs1.nnz];
         dcsrilu0(&crs1.m, crs1.a, crs1.ia, crs1.ja, bilu0, ipar, dpar, &ierr);
-        //возвращаем индексацию матрицы с 1 на 0
+
+        //return matrix indexing from 1 to 0
         for (int i = 0; i < crs1.m + 1; i++) {
             crs1.ia[i] -= 1;
             crs1.ja[i] -= 1;
@@ -639,19 +653,14 @@ int main() {
         sparse_matrix_t B;
         mkl_sparse_d_create_csr(&B, SPARSE_INDEX_BASE_ZERO, crs1.m, crs1.m, crs1.ia, (crs1.ia + 1), crs1.ja, bilu0);
 
-        P_ILU0_CG(crs.m, A, B, u, f, eps, &res, 100000, &nit);
+        P_ILU0_CG(crs.m, A, B, u, f, eps, &res, crs.m, &nit);
         auto end = chrono::high_resolution_clock::now();
         chrono::duration<double> duration = end - start;
         cblas_daxpy(crs.m, -1., u, 1, exact, 1);
         cout << "Preconditioned (ILU0) Conjugate Gradient" << endl;
-        cout << "Size of matrix: " << crs.m << "\nNumber of iterations: " << nit << "\nNorm of residual vector: " << res << endl;
+        cout << "Size of matrix: " << crs.m << "\n" << "Number of iterations : " << nit << "\n" << "Norm of residual vector : " << res << endl;
         cout << "Error: " << fabs(exact[cblas_idamax(crs.m, exact, 1)]) << endl;
         cout << "Time: " << duration.count() << endl << endl;
         delete[] bilu0;
     }
-
-    delete[] exact;
-    delete[] u;
-    delete[] f;
-    return 0;
 }
