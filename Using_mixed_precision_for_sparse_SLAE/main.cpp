@@ -75,7 +75,7 @@ struct CRSArrays {
     }
 };
 
-// Структура для матричек в формате COO (Coordinate)
+//Structure for matrices in COO (Coordinate) format
 struct COOArrays {
     MKL_INT m;      //< the dimension of the matrix
     MKL_INT nnz;    //< the number of nnz inside the matrix
@@ -410,7 +410,7 @@ void CG(    //Conjugate gradient method
 
         cblas_daxpy(nrows, alpha, p, 1, u, 1);
         cblas_daxpy(nrows, -alpha, Ap, 1, r, 1);
-        //cout << fabs(r[cblas_idamax(nrows, r, 1)]) << endl;
+
         beta = rr;
         rr = cblas_ddot(nrows, r, 1, r, 1);
         beta = rr / beta;
@@ -535,8 +535,6 @@ void P_ILU0_CG(      //Preconditioned conjugate gradient method (CG with incompl
         cblas_daxpy(nrows, alpha, p, 1, u, 1);
         cblas_daxpy(nrows, -alpha, Ap, 1, r, 1);
 
-        //cout << fabs(r[cblas_idamax(nrows, r, 1)]) << endl;
-
         mkl_sparse_d_trsv(SPARSE_OPERATION_NON_TRANSPOSE, 1, B, descr2, r, Ap);
         mkl_sparse_d_trsv(SPARSE_OPERATION_NON_TRANSPOSE, 1, B, descr1, Ap, z);
 
@@ -557,7 +555,7 @@ void P_ILU0_CG(      //Preconditioned conjugate gradient method (CG with incompl
 }
 
 void procedure(
-    int preсond,    //0 - CG, 1 - CG + ICC, 2 - CG + ILU0
+    int preсond,    //0 - CG, 1 - CG + ICC, 2 - CG + ILU(0)
     double eps,     //stopping criterion accuracy
     string s        //the name of the file where the matrix is stored
 )
@@ -583,6 +581,7 @@ void procedure(
         auto end = chrono::high_resolution_clock::now();
         chrono::duration<double> duration = end - start;
         cblas_daxpy(crs.m, -1., u, 1, exact, 1);    //the exact vector becomes the error vector
+
         cout << "Conjugate Gradient" << endl;
         cout << "Size of matrix: " << crs.m << "\nNumber of iterations: " << nit << "\nNorm of residual vector: " << res << endl;
         cout << "Error: " << fabs(exact[cblas_idamax(crs.m, exact, 1)]) << endl;
@@ -593,6 +592,7 @@ void procedure(
         auto start = chrono::high_resolution_clock::now();
         sparse_matrix_t C;
         CRSArrays crs2(crs);
+
         //procedure ICC_2 counts the elements of the Cholesky matrix
         if (ICC_2(crs2.m, crs2.ia, crs2.ja, crs2.a) == -1) {
             cout << "ICC failed :(" << endl;
@@ -663,4 +663,11 @@ void procedure(
         cout << "Time: " << duration.count() << endl << endl;
         delete[] bilu0;
     }
+}
+
+int main() {
+    int precond = 1;   //0 - CG, 1 - CG + ICC, 2 - CG + ILU(0)
+    double eps = 1e-7;
+    procedure(precond, eps, "parabolic_fem.mtx");
+    return 0;
 }
